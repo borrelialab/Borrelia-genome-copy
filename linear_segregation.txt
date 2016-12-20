@@ -1,0 +1,75 @@
+#cylindrical is designed to apply our concept from our program "linear" without having to input a given cell configuration.  Instead, for the "linear" defined here, we input a number of genomes per cell and generations, and it randomly configures our initial cell.  We limit ourselves to dealing only with initial configurations that have one genome of the new variant.  The advantage is that now, for a given number of genomes per cell and generations, we can run this "linear" many times and see the average results, along with the variance.   
+
+gpc=16 # genomes per cell
+trials=1000 # number of trials we want to average
+
+import numpy as np
+import pylab as pl
+import random
+def linear(genomes, generations):
+    a=np.ones(genomes)
+    for i in range(genomes):
+        a[i]=0
+    ran=random.randint(0,genomes-1)
+    a[ran]=1
+    
+    b=len(a)
+
+    def next(x):
+        y=np.ones(2*len(x))
+        for i in range(0,len(x)):
+            y[2*i+1]=x[i]
+            y[2*i]=x[i]
+        return y
+
+    for n in range (1,generations+1):
+        a=next(a)   
+    
+    z=np.ones(genomes+1)
+    for i in range(genomes+1):
+        z[i]=0
+
+    for n in range(0,2**(generations)):
+        q=0
+        for i in range(0,b):
+            q=q+a[i+b*n]
+        z[q]=z[q]+1
+    return z
+
+import numpy as np
+s=(trials ,gpc+1)
+p=np.ones(s)
+for i in range(trials ):
+    p[i,:]=linear(gpc,14)
+
+import numpy as np
+s=(2,gpc+1)
+table=np.ones(s)
+for i in range(gpc+1):
+    table[0,i]=np.average(p[:,i])
+    table[1,i]=np.std(p[:,i])/np.sqrt(trials )
+
+
+# Finally we plot a bar graph of our results, including the standard error.  
+
+glab=np.ones(gpc+1)
+for i in range(gpc+1):
+	glab[i]=i
+import pylab as pl
+table[:,:]=np.log10(table[:,:])
+pl.clf()
+fig = pl.figure()
+ax=fig.add_subplot(1,1,1)
+y=table[0,:]
+N=len(y)
+ind=range(N)
+err=table[1,:]
+ax.bar(ind,y,facecolor='#777777', align='center', yerr=err,ecolor='black')
+ax.set_ylabel('Log base 10; Number of cells')
+ax.set_xlabel('Number of genomes of the new variant per cell')
+ax.set_title('Cylindrical Model', fontstyle='italic')
+ax.set_xticks(ind)
+group_labels=glab
+ax.set_xticklabels(group_labels)
+fig.autofmt_xdate()
+pl.show()
