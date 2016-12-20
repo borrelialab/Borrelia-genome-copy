@@ -1,0 +1,101 @@
+# We simulate the random segregation model as it would be simulated in real life, in the sense that trials beginning with the same starting conditions will not have identical outcomes. This program runs many trials, averages them, and shows the standard error.  To change the number of genomes per cell cell replace "16" in the next line with the desired value.  
+
+gpc=16 # genomes per cell
+trials=1000 # number of trials we want to average
+
+import numpy as np
+import pylab as pl
+import random
+
+
+# duplicate takes a single cell, with 'genomes' number of genomes.  It doubles the number of cells of the new variant which are in that cell, and randomly distributes them throughout the two new cells.   
+
+def duplicate(cell,genomes):
+        new =0
+        for i in range(genomes):
+            if cell[i]==1:
+                new=new+1
+        newcell=np.ones(2*genomes)
+        for i in range(2*genomes):
+            newcell[i]=0
+        i=0
+        while i<2*new:
+            ran=random.randint(0,2*genomes-1)
+            if newcell[ran]!=1:
+                newcell[ran]=1
+                i=i+1
+        return newcell
+
+# for an array that can have many cells, next duplicates each cell along this array, returning an array that is twice as long, and has twice as many cells. 
+def next(x,genomes):
+        y=np.ones(2*len(x))
+        v=len(x)/genomes
+        for i in range(v):
+            cell=np.ones(genomes)
+            for j in range(genomes):
+                cell[j]=x[j+i*genomes]
+            newcell=duplicate(cell,genomes)
+            for j in range(2*genomes):
+                y[j+2*i*genomes]=newcell[j]
+        return y 
+
+
+#The Random Segregation model takes a given starting cell and determines a next generation for however many generations we specify.  After this many generations, it outputs the number of cells that have each given number of genomes of the new variant.  
+def spherical(genomes, generations):
+    a=np.ones(genomes)
+    for i in range(genomes):
+        a[i]=0
+    ran=random.randint(0,genomes-1)
+    a[ran]=1
+    
+    b=len(a) 
+    
+    for n in range(generations):
+        a=next(a,genomes)
+    z=np.ones(genomes+1)
+    for i in range(genomes+1):
+        z[i]=0
+    
+    for n in range(2**(generations)):
+        q=0
+        for i in range(genomes):
+            q=q+a[i+b*n]
+        z[q]=z[q]+1
+                
+    return z
+
+s=(trials,gpc+1)
+p=np.ones(s)
+for i in range(trials):
+    p[i,:]=spherical(gpc,14)
+
+import numpy as np
+s=(2,gpc+1)
+table=np.ones(s)
+for i in range(gpc+1):
+    table[0,i]=np.average(p[:,i])
+    table[1,i]=np.std(p[:,i])/np.sqrt(trials)
+
+
+glab=np.ones(gpc+1)
+for i in range(gpc+1):
+	glab[i]=i
+import pylab as pl
+table[:,:]=np.log10(table[:,:])
+pl.clf()
+fig = pl.figure()
+ax=fig.add_subplot(1,1,1)
+y=table[0,:]
+N=len(y)
+ind=range(N)
+err=table[1,:]
+ax.bar(ind,y,facecolor='#777777', align='center', yerr=err,ecolor='black')
+ax.set_ylabel('Log base 10; number of cells')
+ax.set_xlabel('Number of genomes of the new variant')
+ax.set_title('Random Segregation Model', fontstyle='italic')
+ax.set_xticks(ind)
+group_labels=glab
+ax.set_xticklabels(group_labels)
+fig.autofmt_xdate()
+pl.show()
+pl.savefig('a')
